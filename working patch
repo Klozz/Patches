@@ -1,4 +1,4 @@
-From 39d2b1684b739a4b9b1c6e4f1ea8bb79ab27b956 Mon Sep 17 00:00:00 2001
+From f5b674133d78f313c9b2e5f5652a26b019c30f88 Mon Sep 17 00:00:00 2001
 From: Ashwin Ramesh <ashwinr64@gmail.com>
 Date: Sun, 23 Oct 2016 19:01:21 +0530
 Subject: [PATCH] av: Add support for CameraSource as metadata type
@@ -20,7 +20,7 @@ Change-Id: I64eeab7682e729d17618cf56d01e5e04e9b9bb2a
 ---
  camera/cameraserver/Android.mk                     |  4 ++
  cmds/stagefright/Android.mk                        | 12 +++-
- include/media/IOMX.h                               | 14 +++++
+ include/media/IOMX.h                               |  2 +
  include/media/stagefright/CameraSource.h           | 14 +++++
  include/media/stagefright/SurfaceMediaSource.h     | 10 +++
  media/libmedia/IOMX.cpp                            |  9 ++-
@@ -37,7 +37,7 @@ Change-Id: I64eeab7682e729d17618cf56d01e5e04e9b9bb2a
  .../wifi-display/source/PlaybackSession.cpp        |  6 ++
  media/mediaserver/main_mediaserver.cpp             |  6 ++
  services/camera/libcameraservice/CameraService.cpp |  4 ++
- 19 files changed, 268 insertions(+), 10 deletions(-)
+ 19 files changed, 256 insertions(+), 10 deletions(-)
 
 diff --git a/camera/cameraserver/Android.mk b/camera/cameraserver/Android.mk
 index 7e36c5e..46056c6 100644
@@ -59,7 +59,7 @@ index 7e36c5e..46056c6 100644
 +
 +endif
 diff --git a/cmds/stagefright/Android.mk b/cmds/stagefright/Android.mk
-index 9e15a81..2f4216a 100644
+index 9e15a81..29c91b9 100644
 --- a/cmds/stagefright/Android.mk
 +++ b/cmds/stagefright/Android.mk
 @@ -39,8 +39,12 @@ LOCAL_SHARED_LIBRARIES := \
@@ -70,7 +70,7 @@ index 9e15a81..2f4216a 100644
 +	$(TOP)/frameworks/native/include/media/openmax
 +
 +ifneq ($(TARGET_HAS_LEGACY_CAMERA_HAL1), true)
-+LOCAL_C_INCLUDES+= \
++LOCAL_C_INCLUDES += \
  	$(TOP)/frameworks/native/include/media/hardware
 +endif
  
@@ -84,43 +84,26 @@ index 9e15a81..2f4216a 100644
 +	$(TOP)/frameworks/native/include/media/openmax
 +
 +ifneq ($(TARGET_HAS_LEGACY_CAMERA_HAL1), true)
-+LOCAL_C_INCLUDES+= \
++LOCAL_C_INCLUDES += \
  	$(TOP)/frameworks/native/include/media/hardware
 +endif
  
  LOCAL_CFLAGS += -Wno-multichar -Werror -Wall
  LOCAL_CLANG := true
 diff --git a/include/media/IOMX.h b/include/media/IOMX.h
-index 15d691f..a49e732 100644
+index 15d691f..9fd15e6 100644
 --- a/include/media/IOMX.h
 +++ b/include/media/IOMX.h
-@@ -277,6 +277,7 @@ struct CodecProfileLevel {
-     OMX_U32 mLevel;
- };
- 
+@@ -283,7 +283,9 @@ inline static const char *asString(MetadataBufferType i, const char *def = "??")
+         case kMetadataBufferTypeCameraSource:   return "CameraSource";
+         case kMetadataBufferTypeGrallocSource:  return "GrallocSource";
+         case kMetadataBufferTypeANWBuffer:      return "ANWBuffer";
 +#ifndef METADATA_CAMERA_SOURCE
- inline static const char *asString(MetadataBufferType i, const char *def = "??") {
-     using namespace android;
-     switch (i) {
-@@ -290,5 +291,18 @@ inline static const char *asString(MetadataBufferType i, const char *def = "??")
- }
- 
- }  // namespace android
-+#else
-+}  // namespace android
-+inline static const char *asString(android::MetadataBufferType i, const char *def = "??") {
-+    using namespace android;
-+    switch (i) {
-+        case kMetadataBufferTypeCameraSource:   return "CameraSource";
-+        case kMetadataBufferTypeGrallocSource:  return "GrallocSource";
-+        case kMetadataBufferTypeANWBuffer:      return "ANWBuffer";
-+        case kMetadataBufferTypeInvalid:        return "Invalid";
-+        default:                                return def;
-+    }
-+}
- 
+         case kMetadataBufferTypeNativeHandleSource: return "NativeHandleSource";
 +#endif // METADATA_CAMERA_SOURCE
- #endif  // ANDROID_IOMX_H_
+         case kMetadataBufferTypeInvalid:        return "Invalid";
+         default:                                return def;
+     }
 diff --git a/include/media/stagefright/CameraSource.h b/include/media/stagefright/CameraSource.h
 index c2e75a6..19449ba 100644
 --- a/include/media/stagefright/CameraSource.h
@@ -233,7 +216,7 @@ index 3f7831e..9957891 100644
  
              reply->writeInt32(type);
 diff --git a/media/libmediaplayerservice/Android.mk b/media/libmediaplayerservice/Android.mk
-index b175453..4e73340 100644
+index b175453..9d50280 100644
 --- a/media/libmediaplayerservice/Android.mk
 +++ b/media/libmediaplayerservice/Android.mk
 @@ -54,12 +54,16 @@ LOCAL_C_INCLUDES :=                                                 \
@@ -247,7 +230,7 @@ index b175453..4e73340 100644
      $(TOP)/frameworks/av/media/libstagefright/mpeg2ts               \
  
 +ifneq ($(TARGET_HAS_LEGACY_CAMERA_HAL1), true)
-+LOCAL_C_INCLUDES += 
++LOCAL_C_INCLUDES +=
 +    $(TOP)/frameworks/native/include/media/hardware
 +endif
 +
